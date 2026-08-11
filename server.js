@@ -1,4 +1,5 @@
 // server.js - Main Express Application Server
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
@@ -6,7 +7,7 @@ const path = require('path');
 const db = require('./db');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // =============================================
 // Middleware
@@ -98,7 +99,7 @@ app.post('/api/login', async (req, res) => {
     }
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error (Database connection failed)' });
   }
 });
 
