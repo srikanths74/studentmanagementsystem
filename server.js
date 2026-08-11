@@ -12,18 +12,23 @@ const PORT = process.env.PORT || 3000;
 // =============================================
 // Middleware
 // =============================================
+app.set('trust proxy', 1);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(express.static(path.join(process.cwd(), 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
   secret: 'sms-secret-key-2024',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { maxAge: 60 * 60 * 1000 } // 1 hour
+  resave: true,
+  saveUninitialized: true,
+  cookie: {
+    maxAge: 60 * 60 * 1000,
+    sameSite: 'lax'
+  }
 }));
 
 // Serve HTML files
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', path.join(process.cwd(), 'views'));
 
 // =============================================
 // Auth Middleware
@@ -39,9 +44,20 @@ function isAuthenticated(req, res, next) {
 // Page Routes
 // =============================================
 
+// Helper to serve view files cross-platform
+function serveView(res, fileName) {
+  const cwdPath = path.join(process.cwd(), 'views', fileName);
+  const dirPath = path.join(__dirname, 'views', fileName);
+  res.sendFile(cwdPath, (err) => {
+    if (err) {
+      res.sendFile(dirPath);
+    }
+  });
+}
+
 // Root → redirect to dashboard or login
 app.get('/', (req, res) => {
-  if (req.session.admin) {
+  if (req.session && req.session.admin) {
     res.redirect('/dashboard');
   } else {
     res.redirect('/login');
@@ -50,28 +66,28 @@ app.get('/', (req, res) => {
 
 // Login Page
 app.get('/login', (req, res) => {
-  if (req.session.admin) return res.redirect('/dashboard');
-  res.sendFile(path.join(__dirname, 'views', 'login.html'));
+  if (req.session && req.session.admin) return res.redirect('/dashboard');
+  serveView(res, 'login.html');
 });
 
 // Dashboard Page
 app.get('/dashboard', isAuthenticated, (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
+  serveView(res, 'dashboard.html');
 });
 
 // View Students Page
 app.get('/students', isAuthenticated, (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'students.html'));
+  serveView(res, 'students.html');
 });
 
 // Add Student Page
 app.get('/add-student', isAuthenticated, (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'add-student.html'));
+  serveView(res, 'add-student.html');
 });
 
 // Edit Student Page
 app.get('/edit-student', isAuthenticated, (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'edit-student.html'));
+  serveView(res, 'edit-student.html');
 });
 
 // =============================================
