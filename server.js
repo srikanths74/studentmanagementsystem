@@ -1,7 +1,7 @@
 // server.js - Main Express Application Server
 require('dotenv').config();
 const express = require('express');
-const session = require('express-session');
+const cookieSession = require('cookie-session');
 const bodyParser = require('body-parser');
 const path = require('path');
 const db = require('./db');
@@ -17,14 +17,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(process.cwd(), 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(session({
-  secret: 'sms-secret-key-2024',
-  resave: true,
-  saveUninitialized: true,
-  cookie: {
-    maxAge: 60 * 60 * 1000,
-    sameSite: 'lax'
-  }
+app.use(cookieSession({
+  name: 'session',
+  keys: ['sms-secret-key-2024'],
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
 
 // Serve HTML files
@@ -121,10 +117,8 @@ app.post('/api/login', async (req, res) => {
 
 // POST /api/logout
 app.post('/api/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) console.error('Session destroy error:', err);
-    res.json({ success: true });
-  });
+  req.session = null;
+  res.json({ success: true });
 });
 
 // GET /api/session - Get current admin info

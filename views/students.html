@@ -11,6 +11,7 @@
 <body>
 
 <div class="app-layout">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
 
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
@@ -38,8 +39,13 @@
   <div class="main-content">
     <header class="topbar">
       <div class="topbar-left">
-        <h1>Students</h1>
-        <div class="breadcrumb">Dashboard / Students / View All</div>
+        <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Toggle menu">
+          <i class="fa fa-bars"></i>
+        </button>
+        <div>
+          <h1>Students</h1>
+          <div class="breadcrumb">Dashboard / Students / View All</div>
+        </div>
       </div>
       <div class="topbar-right">
         <a href="/add-student" class="btn btn-primary btn-sm">
@@ -330,6 +336,13 @@
   document.getElementById('delete-modal').addEventListener('click', function(e) {
     if (e.target === this) closeDeleteModal();
   });
+
+  function toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('active');
+  }
 
   init();
 </script>

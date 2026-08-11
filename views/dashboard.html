@@ -11,6 +11,7 @@
 <body>
 
 <div class="app-layout">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
 
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
@@ -49,8 +50,13 @@
     <!-- TOPBAR -->
     <header class="topbar">
       <div class="topbar-left">
-        <h1>Welcome back! 👋</h1>
-        <div class="breadcrumb">Dashboard / Overview</div>
+        <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Toggle menu">
+          <i class="fa fa-bars"></i>
+        </button>
+        <div>
+          <h1>Welcome back! 👋</h1>
+          <div class="breadcrumb">Dashboard / Overview</div>
+        </div>
       </div>
       <div class="topbar-right">
         <div class="badge-online">Online</div>
@@ -183,6 +189,11 @@
     toast.innerHTML = `<i class="fa ${icons[type]}"></i><span>${msg}</span>`;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 3500);
+  function toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('active');
   }
 
   init();
