@@ -189,6 +189,8 @@
     toast.innerHTML = `<i class="fa ${icons[type]}"></i><span>${msg}</span>`;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 3500);
+  }
+
   function toggleMobileSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
