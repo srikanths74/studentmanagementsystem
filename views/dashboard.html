@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — SMS App</title>
+  <meta name="description" content="Student Management System Dashboard" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/images/logo.svg" alt="SMS Logo" class="logo-img" />
+      <div class="logo-text">
+        <h3>SMS App</h3>
+        <span>Management System</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Main Menu</div>
+      <a href="/dashboard" class="nav-link active" id="nav-dashboard">
+        <i class="fa fa-gauge-high"></i> Dashboard
+      </a>
+      <a href="/students" class="nav-link" id="nav-students">
+        <i class="fa fa-users"></i> Students
+      </a>
+      <a href="/add-student" class="nav-link" id="nav-add">
+        <i class="fa fa-user-plus"></i> Add Student
+      </a>
+
+    </nav>
+
+    <div class="sidebar-user">
+      <button class="sidebar-logout-full-btn" onclick="handleLogout()">
+        <i class="fa fa-right-from-bracket"></i> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1>Welcome back! 👋</h1>
+        <div class="breadcrumb">Dashboard / Overview</div>
+      </div>
+      <div class="topbar-right">
+        <div class="badge-online">Online</div>
+      </div>
+    </header>
+
+    <!-- PAGE CONTENT -->
+    <main class="page-content">
+
+      <!-- Stats Row -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card blue">
+          <div class="stat-icon"><i class="fa fa-users"></i></div>
+          <div class="stat-info">
+            <h3 id="stat-total">—</h3>
+            <p>Total Students</p>
+          </div>
+        </div>
+        <div class="stat-card cyan">
+          <div class="stat-icon"><i class="fa fa-person"></i></div>
+          <div class="stat-info">
+            <h3 id="stat-males">—</h3>
+            <p>Male Students</p>
+          </div>
+        </div>
+        <div class="stat-card green" >
+          <div class="stat-icon"><i class="fa fa-person-dress"></i></div>
+          <div class="stat-info">
+            <h3 id="stat-females">—</h3>
+            <p>Female Students</p>
+          </div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-icon"><i class="fa fa-calendar-plus"></i></div>
+          <div class="stat-info">
+            <h3 id="stat-recent">—</h3>
+            <p>Added This Month</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Cards -->
+      <div class="section-header">
+        <div>
+          <h2>Quick Actions</h2>
+          <p>Navigate to any section of the system</p>
+        </div>
+      </div>
+
+      <div class="action-grid">
+        <a href="/students" class="action-card">
+          <div class="card-icon icon-blue"><i class="fa fa-users"></i></div>
+          <h4>View Students</h4>
+          <p>Browse, search and manage all enrolled students</p>
+          <span class="btn-open blue">Open</span>
+        </a>
+
+        <a href="/add-student" class="action-card">
+          <div class="card-icon icon-green"><i class="fa fa-user-plus"></i></div>
+          <h4>Add Student</h4>
+          <p>Enroll a new student into the system</p>
+          <span class="btn-open green">Open</span>
+        </a>
+
+        <a href="#" class="action-card" onclick="handleLogout(); return false;">
+          <div class="card-icon icon-dark"><i class="fa fa-right-from-bracket"></i></div>
+          <h4>Logout</h4>
+          <p>Securely sign out of the admin panel</p>
+          <span class="btn-open dark">Logout</span>
+        </a>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+  // ---- Auth Guard ----
+  let adminData = null;
+
+  async function init() {
+    const res = await fetch('/api/session');
+    const data = await res.json();
+    if (!data.loggedIn) {
+      window.location.href = '/login';
+      return;
+    }
+    adminData = data.admin;
+    loadStats();
+  }
+
+  async function loadStats() {
+    try {
+      const res = await fetch('/api/stats');
+      const data = await res.json();
+      if (data.success) {
+        animateCount('stat-total', data.data.total);
+        animateCount('stat-males', data.data.males);
+        animateCount('stat-females', data.data.females);
+        animateCount('stat-recent', data.data.recent);
+      }
+    } catch(e) { console.error(e); }
+  }
+
+  function animateCount(id, target) {
+    const el = document.getElementById(id);
+    let current = 0;
+    const step = Math.max(1, Math.floor(target / 20));
+    const interval = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = current;
+      if (current >= target) clearInterval(interval);
+    }, 40);
+  }
+
+  async function handleLogout() {
+    await fetch('/api/logout', { method: 'POST' });
+    showToast('Logged out successfully', 'success');
+    setTimeout(() => window.location.href = '/login', 800);
+  }
+
+  function showToast(msg, type = 'success') {
+    const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info' };
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<i class="fa ${icons[type]}"></i><span>${msg}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }
+
+  init();
+</script>
+
+</body>
+</html>

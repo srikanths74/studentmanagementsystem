@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>View Students — SMS App</title>
+  <meta name="description" content="View and manage all students in the Student Management System" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/images/logo.svg" alt="SMS Logo" class="logo-img" />
+      <div class="logo-text">
+        <h3>SMS App</h3>
+        <span>Management System</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Main Menu</div>
+      <a href="/dashboard" class="nav-link"><i class="fa fa-gauge-high"></i> Dashboard</a>
+      <a href="/students" class="nav-link active"><i class="fa fa-users"></i> Students</a>
+      <a href="/add-student" class="nav-link"><i class="fa fa-user-plus"></i> Add Student</a>
+    </nav>
+    <div class="sidebar-user">
+      <button class="sidebar-logout-full-btn" onclick="handleLogout()">
+        <i class="fa fa-right-from-bracket"></i> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1>Students</h1>
+        <div class="breadcrumb">Dashboard / Students / View All</div>
+      </div>
+      <div class="topbar-right">
+        <a href="/add-student" class="btn btn-primary btn-sm">
+          <i class="fa fa-user-plus"></i> Add Student
+        </a>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div class="table-card">
+        <div class="table-toolbar">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; flex:1; align-items:center;">
+            <div class="search-box" style="max-width:320px; min-width:240px;">
+              <i class="fa fa-search"></i>
+              <input type="text" id="search-input" placeholder="Search name, email, phone, DOB, course, gender..." oninput="filterTable()" />
+            </div>
+
+            <!-- Course Filter -->
+            <select id="filter-course" class="form-control" style="width:auto; max-width:180px; padding:9px 12px; font-size:13px; border-radius:8px;" onchange="filterTable()">
+              <option value="">All Courses</option>
+              <option>Computer Science</option>
+              <option>Information Technology</option>
+              <option>Electronics Engineering</option>
+              <option>Mechanical Engineering</option>
+              <option>Civil Engineering</option>
+              <option>Data Science</option>
+              <option>Artificial Intelligence</option>
+              <option>Business Administration</option>
+              <option>Commerce</option>
+              <option>Arts & Humanities</option>
+              <option>Medicine</option>
+              <option>Law</option>
+              <option>Other</option>
+            </select>
+
+            <!-- Gender Filter -->
+            <select id="filter-gender" class="form-control" style="width:auto; max-width:140px; padding:9px 12px; font-size:13px; border-radius:8px;" onchange="filterTable()">
+              <option value="">All Genders</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div style="display:flex; gap:10px; align-items:center; flex-shrink:0;">
+            <span id="student-count" style="font-size:12px; color:var(--text-muted)">Loading...</span>
+            <button class="btn btn-secondary btn-sm" onclick="resetFilters()" title="Reset All Filters">
+              <i class="fa fa-rotate"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table id="students-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Student</th>
+                <th>Course</th>
+                <th>Phone</th>
+                <th>Gender</th>
+                <th>Date of Birth</th>
+                <th>Enrolled</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="students-tbody">
+              <tr>
+                <td colspan="8">
+                  <div class="table-empty">
+                    <i class="fa fa-spinner fa-spin"></i>
+                    <p>Loading students...</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal">
+    <div class="modal-icon">🗑️</div>
+    <h3>Delete Student</h3>
+    <p>Are you sure you want to delete <strong id="delete-student-name" style="color:#f87171"></strong>? This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn btn-danger" id="confirm-delete-btn" onclick="confirmDelete()">
+        <i class="fa fa-trash"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+  let allStudents = [];
+  let deleteStudentId = null;
+
+  async function init() {
+    const res = await fetch('/api/session');
+    const data = await res.json();
+    if (!data.loggedIn) { window.location.href = '/login'; return; }
+    loadStudents();
+  }
+
+  async function loadStudents() {
+    try {
+      const res = await fetch('/api/students');
+      const data = await res.json();
+      if (data.success) {
+        allStudents = data.data;
+        renderTable(allStudents);
+      }
+    } catch (e) {
+      showToast('Failed to load students', 'error');
+    }
+  }
+
+  function renderTable(students) {
+    const tbody = document.getElementById('students-tbody');
+    const countEl = document.getElementById('student-count');
+    countEl.textContent = `${students.length} student${students.length !== 1 ? 's' : ''} found`;
+
+    if (students.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8">
+        <div class="table-empty">
+          <i class="fa fa-user-slash"></i>
+          <p>No students found. <a href="/add-student" style="color:var(--primary-light)">Add the first student</a></p>
+        </div>
+      </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = students.map((s, i) => {
+      const initials = s.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+      const genderBadge = s.gender === 'Male' ? 'badge-male' : s.gender === 'Female' ? 'badge-female' : 'badge-other';
+      const dob = s.dob ? new Date(s.dob).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+      const enrolled = new Date(s.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+
+      return `<tr id="row-${s.id}">
+        <td style="color:var(--text-muted); font-weight:500">${i + 1}</td>
+        <td>
+          <div class="student-name">
+            <div class="student-avatar">${initials}</div>
+            <div>
+              <strong>${escHtml(s.name)}</strong><br>
+              <small>${escHtml(s.email)}</small>
+            </div>
+          </div>
+        </td>
+        <td>${escHtml(s.course || '—')}</td>
+        <td>${escHtml(s.phone || '—')}</td>
+        <td><span class="badge ${genderBadge}">${escHtml(s.gender || '—')}</span></td>
+        <td>${dob}</td>
+        <td>${enrolled}</td>
+        <td>
+          <div style="display:flex; gap:8px;">
+            <a href="/edit-student?id=${s.id}" class="btn btn-warning btn-sm" title="Edit">
+              <i class="fa fa-pen"></i>
+            </a>
+            <button class="btn btn-danger btn-sm" onclick="openDeleteModal(${s.id}, '${escHtml(s.name).replace(/'/g,"\\'")}')">
+              <i class="fa fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function filterTable() {
+    const q = document.getElementById('search-input').value.toLowerCase().trim();
+    const courseFilter = document.getElementById('filter-course').value;
+    const genderFilter = document.getElementById('filter-gender').value;
+
+    const filtered = allStudents.filter(s => {
+      // 1. Check Course Filter
+      if (courseFilter && (s.course || '') !== courseFilter) {
+        return false;
+      }
+
+      // 2. Check Gender Filter
+      if (genderFilter && (s.gender || '') !== genderFilter) {
+        return false;
+      }
+
+      // 3. Check Text Search Query
+      if (!q) return true;
+
+      const name = (s.name || '').toLowerCase();
+      const email = (s.email || '').toLowerCase();
+      const phone = (s.phone || '').toLowerCase();
+      const course = (s.course || '').toLowerCase();
+      const gender = (s.gender || '').toLowerCase();
+      
+      let dobIso = '';
+      let dobFormatted = '';
+      if (s.dob) {
+        dobIso = String(s.dob).split('T')[0].toLowerCase();
+        dobFormatted = new Date(s.dob).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }).toLowerCase();
+      }
+
+      let enrolledFormatted = '';
+      if (s.created_at) {
+        enrolledFormatted = new Date(s.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }).toLowerCase();
+      }
+
+      return name.includes(q) ||
+        email.includes(q) ||
+        phone.includes(q) ||
+        course.includes(q) ||
+        gender.includes(q) ||
+        dobIso.includes(q) ||
+        dobFormatted.includes(q) ||
+        enrolledFormatted.includes(q);
+    });
+
+    renderTable(filtered);
+  }
+
+  function resetFilters() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('filter-course').value = '';
+    document.getElementById('filter-gender').value = '';
+    loadStudents();
+  }
+
+  function openDeleteModal(id, name) {
+    deleteStudentId = id;
+    document.getElementById('delete-student-name').textContent = name;
+    document.getElementById('delete-modal').classList.add('active');
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.remove('active');
+    deleteStudentId = null;
+  }
+
+  async function confirmDelete() {
+    if (!deleteStudentId) return;
+    const btn = document.getElementById('confirm-delete-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Deleting...';
+
+    try {
+      const res = await fetch(`/api/students/${deleteStudentId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Student deleted successfully!', 'success');
+        closeDeleteModal();
+        loadStudents();
+      } else {
+        showToast(data.message, 'error');
+      }
+    } catch (e) {
+      showToast('Failed to delete student', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-trash"></i> Delete';
+    }
+  }
+
+  async function handleLogout() {
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/login';
+  }
+
+  function showToast(msg, type = 'success') {
+    const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info' };
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<i class="fa ${icons[type]}"></i><span>${msg}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }
+
+  function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  document.getElementById('delete-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+  });
+
+  init();
+</script>
+
+</body>
+</html>

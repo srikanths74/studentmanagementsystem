@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SMS App — Admin Login</title>
+  <meta name="description" content="Student Management System — Secure Admin Login" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="/images/logo.svg" alt="SMS Logo" class="logo-img" />
+      <h2>SMS App</h2>
+      <p>Student Management System</p>
+    </div>
+
+    <div id="alert-error" class="alert-error">
+      <i class="fa fa-circle-exclamation"></i>
+      <span id="alert-msg">Invalid credentials</span>
+    </div>
+
+    <form id="login-form" onsubmit="handleLogin(event)" autocomplete="off">
+      <div class="form-group">
+        <label class="form-label" for="username">
+          <i class="fa fa-user" style="margin-right:6px;color:#0057B8"></i>Username
+        </label>
+        <div class="input-group">
+          <i class="fa fa-user input-icon"></i>
+          <input
+            class="form-control"
+            type="text"
+            id="username"
+            name="user_login_name"
+            placeholder="Enter username"
+            autocomplete="off"
+            autofocus
+            required
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">
+          <i class="fa fa-lock" style="margin-right:6px;color:#0057B8"></i>Password
+        </label>
+        <div class="input-group">
+          <i class="fa fa-lock input-icon"></i>
+          <input
+            class="form-control"
+            type="password"
+            id="password"
+            name="user_password_field"
+            placeholder="Enter password"
+            autocomplete="new-password"
+            required
+          />
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login" id="login-btn">
+        <span id="btn-text"><i class="fa fa-right-to-bracket"></i> &nbsp;Login to Dashboard</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Clear any browser pre-filled values
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('login-form').reset();
+  });
+
+  // Quick check if session active
+  fetch('/api/session')
+    .then(r => r.json())
+    .then(d => { if (d.loggedIn) window.location.replace('/dashboard'); });
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    const btnText = document.getElementById('btn-text');
+    const alertBox = document.getElementById('alert-error');
+    const alertMsg = document.getElementById('alert-msg');
+
+    btn.disabled = true;
+    btnText.innerHTML = '<i class="fa fa-spinner fa-spin"></i> &nbsp;Authenticating...';
+    alertBox.classList.remove('show');
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        btnText.innerHTML = '<i class="fa fa-check"></i> &nbsp;Success!';
+        window.location.replace('/dashboard');
+      } else {
+        alertMsg.textContent = data.message || 'Invalid username or password';
+        alertBox.classList.add('show');
+        btn.disabled = false;
+        btnText.innerHTML = '<i class="fa fa-right-to-bracket"></i> &nbsp;Login to Dashboard';
+      }
+    } catch (err) {
+      alertMsg.textContent = 'Connection error. Please check your server connection.';
+      alertBox.classList.add('show');
+      btn.disabled = false;
+      btnText.innerHTML = '<i class="fa fa-right-to-bracket"></i> &nbsp;Login to Dashboard';
+    }
+  }
+</script>
+
+</body>
+</html>

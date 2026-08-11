@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add Student — SMS App</title>
+  <meta name="description" content="Add a new student to the Student Management System" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/images/logo.svg" alt="SMS Logo" class="logo-img" />
+      <div class="logo-text">
+        <h3>SMS App</h3>
+        <span>Management System</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Main Menu</div>
+      <a href="/dashboard" class="nav-link"><i class="fa fa-gauge-high"></i> Dashboard</a>
+      <a href="/students" class="nav-link"><i class="fa fa-users"></i> Students</a>
+      <a href="/add-student" class="nav-link active"><i class="fa fa-user-plus"></i> Add Student</a>
+    </nav>
+    <div class="sidebar-user">
+      <button class="sidebar-logout-full-btn" onclick="handleLogout()">
+        <i class="fa fa-right-from-bracket"></i> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1>Add New Student</h1>
+        <div class="breadcrumb">Dashboard / Students / Add Student</div>
+      </div>
+      <div class="topbar-right">
+        <a href="/students" class="btn btn-secondary btn-sm">
+          <i class="fa fa-arrow-left"></i> Back to Students
+        </a>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <!-- Alert -->
+      <div id="form-alert" style="
+        display:none;
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-size: 13px;
+        margin-bottom: 20px;
+        font-weight: 500;
+      "></div>
+
+      <div class="form-card">
+        <div class="section-header" style="margin-bottom:24px">
+          <div>
+            <h2 style="font-size:17px">Student Information</h2>
+            <p>Fill in the details to enroll a new student</p>
+          </div>
+        </div>
+
+        <form id="add-student-form" onsubmit="handleSubmit(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="name">Full Name <span class="required">*</span></label>
+              <input type="text" id="name" name="name" placeholder="e.g. Rahul Kumar" required />
+            </div>
+
+            <div class="form-group">
+              <label for="email">Email Address <span class="required">*</span></label>
+              <input type="email" id="email" name="email" placeholder="e.g. rahul@email.com" required />
+            </div>
+
+            <div class="form-group">
+              <label for="phone">Phone Number</label>
+              <input type="tel" id="phone" name="phone" placeholder="e.g. 9876543210" maxlength="15" />
+            </div>
+
+            <div class="form-group">
+              <label for="course">Course / Department</label>
+              <select id="course" name="course">
+                <option value="">— Select Course —</option>
+                <option>Computer Science</option>
+                <option>Information Technology</option>
+                <option>Electronics Engineering</option>
+                <option>Mechanical Engineering</option>
+                <option>Civil Engineering</option>
+                <option>Data Science</option>
+                <option>Artificial Intelligence</option>
+                <option>Business Administration</option>
+                <option>Commerce</option>
+                <option>Arts & Humanities</option>
+                <option>Medicine</option>
+                <option>Law</option>
+                <option>Other</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="gender">Gender</label>
+              <select id="gender" name="gender">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="dob">Date of Birth</label>
+              <input type="date" id="dob" name="dob" max="" />
+            </div>
+
+            <div class="form-group full-width">
+              <label for="address">Address</label>
+              <textarea id="address" name="address" placeholder="City, State, Country"></textarea>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-success" id="submit-btn">
+              <i class="fa fa-user-plus"></i> Add Student
+            </button>
+            <button type="reset" class="btn btn-secondary" id="reset-btn">
+              <i class="fa fa-rotate-left"></i> Reset Form
+            </button>
+            <a href="/students" class="btn btn-secondary">
+              <i class="fa fa-xmark"></i> Cancel
+            </a>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+  async function init() {
+    const res = await fetch('/api/session');
+    const data = await res.json();
+    if (!data.loggedIn) { window.location.href = '/login'; return; }
+    // Set max dob to today
+    document.getElementById('dob').max = new Date().toISOString().split('T')[0];
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Adding...';
+    hideAlert();
+
+    const payload = {
+      name: document.getElementById('name').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      course: document.getElementById('course').value,
+      gender: document.getElementById('gender').value,
+      dob: document.getElementById('dob').value,
+      address: document.getElementById('address').value.trim()
+    };
+
+    try {
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showAlert(`✅ ${data.message}`, 'success');
+        showToast(data.message, 'success');
+        document.getElementById('add-student-form').reset();
+        setTimeout(() => window.location.href = '/students', 1500);
+      } else {
+        showAlert(`❌ ${data.message}`, 'error');
+        showToast(data.message, 'error');
+      }
+    } catch (err) {
+      showAlert('❌ Network error. Please try again.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-user-plus"></i> Add Student';
+    }
+  }
+
+  function showAlert(msg, type) {
+    const el = document.getElementById('form-alert');
+    el.textContent = msg;
+    el.style.display = 'block';
+    if (type === 'success') {
+      el.style.background = 'rgba(16,185,129,0.15)';
+      el.style.border = '1px solid rgba(16,185,129,0.3)';
+      el.style.color = '#059669';
+    } else {
+      el.style.background = 'rgba(239,68,68,0.10)';
+      el.style.border = '1px solid rgba(239,68,68,0.3)';
+      el.style.color = '#dc2626';
+    }
+  }
+
+  function hideAlert() {
+    document.getElementById('form-alert').style.display = 'none';
+  }
+
+  function showToast(msg, type = 'success') {
+    const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info' };
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<i class="fa ${icons[type]}"></i><span>${msg}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }
+
+  async function handleLogout() {
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/login';
+  }
+
+  init();
+</script>
+
+</body>
+</html>
